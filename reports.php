@@ -15,7 +15,10 @@ $sales_by_product_query = "
         SUM(s.quantity_sold) as total_quantity,
         SUM(s.total_amount) as total_revenue,
         AVG(s.total_amount) as avg_transaction,
-        p.unit_price
+        p.unit_price,
+        p.cost_price,
+        SUM(s.quantity_sold * p.cost_price) as total_cost,
+        SUM(s.total_amount) - SUM(s.quantity_sold * p.cost_price) as total_profit
     FROM products p
     LEFT JOIN sales s ON p.product_id = s.product_id
         AND s.sale_date BETWEEN '$date_from' AND '$date_to'
@@ -59,12 +62,15 @@ $daily_sales = $conn->query($daily_sales_query);
 // Summary Statistics
 $summary_query = "
     SELECT 
-        COUNT(DISTINCT sale_id) as total_transactions,
-        SUM(quantity_sold) as total_items_sold,
-        SUM(total_amount) as total_revenue,
-        AVG(total_amount) as avg_transaction
-    FROM sales
-    WHERE sale_date BETWEEN '$date_from' AND '$date_to'
+        COUNT(DISTINCT s.sale_id) as total_transactions,
+        SUM(s.quantity_sold) as total_items_sold,
+        SUM(s.total_amount) as total_revenue,
+        AVG(s.total_amount) as avg_transaction,
+        SUM(s.quantity_sold * p.cost_price) as total_cost,
+        SUM(s.total_amount) - SUM(s.quantity_sold * p.cost_price) as total_profit
+    FROM sales s
+    JOIN products p ON s.product_id = p.product_id
+    WHERE s.sale_date BETWEEN '$date_from' AND '$date_to'
 ";
 $summary = $conn->query($summary_query)->fetch_assoc();
 
@@ -92,6 +98,7 @@ $classification = $conn->query($classification_query);
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -102,39 +109,39 @@ $classification = $conn->query($classification_query);
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #f5f7fa;
             color: #333;
         }
-        
+
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 20px 30px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
-        
+
         .header h1 {
             font-size: 28px;
             margin-bottom: 5px;
         }
-        
+
         .header p {
             font-size: 14px;
             opacity: 0.9;
         }
-        
+
         .nav {
             background: white;
             padding: 15px 30px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
             display: flex;
             gap: 20px;
             flex-wrap: wrap;
         }
-        
+
         .nav a {
             text-decoration: none;
             color: #667eea;
@@ -143,57 +150,57 @@ $classification = $conn->query($classification_query);
             border-radius: 5px;
             transition: all 0.3s;
         }
-        
+
         .nav a:hover {
             background: #667eea;
             color: white;
         }
-        
+
         .nav a.active {
             background: #667eea;
             color: white;
         }
-        
+
         .container {
             max-width: 1400px;
             margin: 30px auto;
             padding: 0 30px;
         }
-        
+
         .filter-box {
             background: white;
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
             margin-bottom: 30px;
         }
-        
+
         .filter-form {
             display: flex;
             gap: 15px;
             align-items: end;
             flex-wrap: wrap;
         }
-        
+
         .form-group {
             display: flex;
             flex-direction: column;
         }
-        
+
         .form-group label {
             font-weight: 600;
             margin-bottom: 8px;
             color: #2c3e50;
             font-size: 14px;
         }
-        
+
         .form-group input {
             padding: 10px;
             border: 1px solid #dce1e6;
             border-radius: 5px;
             font-size: 14px;
         }
-        
+
         .btn {
             padding: 10px 20px;
             border: none;
@@ -202,31 +209,32 @@ $classification = $conn->query($classification_query);
             cursor: pointer;
             transition: all 0.3s;
         }
-        
+
         .btn-primary {
             background: #667eea;
             color: white;
         }
-        
+
         .btn-primary:hover {
             background: #5568d3;
         }
-        
+
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
+
         }
-        
+
         .stat-card {
             background: white;
             padding: 25px;
             border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
             border-left: 4px solid #667eea;
         }
-        
+
         .stat-card h3 {
             font-size: 14px;
             color: #7f8c8d;
@@ -234,40 +242,40 @@ $classification = $conn->query($classification_query);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        
+
         .stat-card .value {
             font-size: 32px;
             font-weight: bold;
             color: #2c3e50;
         }
-        
+
         .card {
             background: white;
             border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
             margin-bottom: 30px;
         }
-        
+
         .card-header {
             background: #f8f9fa;
             padding: 20px;
             border-bottom: 1px solid #e9ecef;
         }
-        
+
         .card-header h2 {
             font-size: 18px;
             color: #2c3e50;
         }
-        
+
         .card-body {
             padding: 20px;
         }
-        
+
         table {
             width: 100%;
             border-collapse: collapse;
         }
-        
+
         table th {
             text-align: left;
             padding: 12px;
@@ -277,20 +285,20 @@ $classification = $conn->query($classification_query);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        
+
         table td {
             padding: 12px;
             border-bottom: 1px solid #e9ecef;
         }
-        
+
         table tr:last-child td {
             border-bottom: none;
         }
-        
+
         table tr:hover {
             background: #f8f9fa;
         }
-        
+
         .badge {
             display: inline-block;
             padding: 4px 10px;
@@ -298,41 +306,45 @@ $classification = $conn->query($classification_query);
             font-size: 12px;
             font-weight: 600;
         }
-        
+
         .badge-fast {
             background: #d4edda;
             color: #155724;
         }
-        
+
         .badge-medium {
             background: #fff3cd;
             color: #856404;
         }
-        
+
         .badge-slow {
             background: #f8d7da;
             color: #721c24;
         }
-        
+
         .empty-state {
             text-align: center;
             padding: 40px;
             color: #7f8c8d;
         }
-        
+
         @media print {
-            .nav, .filter-box, .btn {
+
+            .nav,
+            .filter-box,
+            .btn {
                 display: none;
             }
         }
     </style>
 </head>
+
 <body>
     <div class="header">
         <h1>🏪 ShopWise AI</h1>
-      <p>Next-Generation Inventory Platform for Convenience Store Networks</p>
+        <p>Next-Generation Inventory Platform for Convenience Store Networks</p>
     </div>
-    
+
     <div class="nav">
         <a href="index.php">Dashboard</a>
         <a href="products.php">Products</a>
@@ -340,7 +352,7 @@ $classification = $conn->query($classification_query);
         <a href="forecast.php">Forecast & Restock</a>
         <a href="reports.php" class="active">Reports</a>
     </div>
-    
+
     <div class="container">
         <!-- Date Filter -->
         <div class="filter-box">
@@ -349,40 +361,52 @@ $classification = $conn->query($classification_query);
                     <label>From Date</label>
                     <input type="date" name="date_from" value="<?php echo $date_from; ?>" required>
                 </div>
-                
+
                 <div class="form-group">
                     <label>To Date</label>
                     <input type="date" name="date_to" value="<?php echo $date_to; ?>" required>
                 </div>
-                
+
                 <button type="submit" class="btn btn-primary">Generate Report</button>
                 <button type="button" class="btn btn-primary" onclick="window.print()">🖨️ Print Report</button>
             </form>
         </div>
-        
+
         <!-- Summary Statistics -->
         <div class="stats-grid">
             <div class="stat-card">
                 <h3>Total Transactions</h3>
                 <div class="value"><?php echo number_format($summary['total_transactions'] ?? 0); ?></div>
             </div>
-            
+
             <div class="stat-card">
                 <h3>Items Sold</h3>
                 <div class="value"><?php echo number_format($summary['total_items_sold'] ?? 0); ?></div>
             </div>
-            
+
             <div class="stat-card">
                 <h3>Total Revenue</h3>
                 <div class="value">₱<?php echo number_format($summary['total_revenue'] ?? 0, 2); ?></div>
             </div>
-            
+
             <div class="stat-card">
                 <h3>Avg Transaction</h3>
                 <div class="value">₱<?php echo number_format($summary['avg_transaction'] ?? 0, 2); ?></div>
             </div>
+
+             <div class="stat-card" style="border-left-color: #27ae60;">
+                <h3>💰 Profit (Selected Period)</h3>
+                <div class="value" style="color: #27ae60;">₱<?php echo number_format($summary['total_profit'] ?? 0, 2); ?></div>
+                <small style="color:#7f8c8d;">
+                    <?php
+                    $margin_pct = ($summary['total_revenue'] ?? 0) > 0
+                        ? ($summary['total_profit'] / $summary['total_revenue']) * 100 : 0;
+                    echo number_format($margin_pct, 1) . '% margin';
+                    ?>
+                </small>
+            </div>
         </div>
-        
+
         <!-- Sales by Product -->
         <div class="card">
             <div class="card-header">
@@ -403,9 +427,9 @@ $classification = $conn->query($classification_query);
                             </tr>
                         </thead>
                         <tbody>
-                            <?php 
+                            <?php
                             $rank = 1;
-                            while($row = $sales_by_product->fetch_assoc()): 
+                            while ($row = $sales_by_product->fetch_assoc()):
                             ?>
                                 <tr>
                                     <td><strong><?php echo $rank++; ?></strong></td>
@@ -424,7 +448,7 @@ $classification = $conn->query($classification_query);
                 <?php endif; ?>
             </div>
         </div>
-        
+
         <!-- Sales by Category -->
         <div class="card">
             <div class="card-header">
@@ -443,9 +467,9 @@ $classification = $conn->query($classification_query);
                             </tr>
                         </thead>
                         <tbody>
-                            <?php 
+                            <?php
                             $total_revenue = $summary['total_revenue'];
-                            while($row = $sales_by_category->fetch_assoc()): 
+                            while ($row = $sales_by_category->fetch_assoc()):
                                 $percentage = $total_revenue > 0 ? ($row['total_revenue'] / $total_revenue) * 100 : 0;
                             ?>
                                 <tr>
@@ -463,7 +487,7 @@ $classification = $conn->query($classification_query);
                 <?php endif; ?>
             </div>
         </div>
-        
+
         <!-- Product Classification -->
         <div class="card">
             <div class="card-header">
@@ -481,14 +505,14 @@ $classification = $conn->query($classification_query);
                         </tr>
                     </thead>
                     <tbody>
-                        <?php while($row = $classification->fetch_assoc()): ?>
+                        <?php while ($row = $classification->fetch_assoc()): ?>
                             <tr>
                                 <td><strong><?php echo htmlspecialchars($row['product_name']); ?></strong></td>
                                 <td><?php echo htmlspecialchars($row['category']); ?></td>
                                 <td><?php echo number_format($row['total_sold']); ?></td>
                                 <td><?php echo $row['sales_days']; ?> days</td>
                                 <td>
-                                    <?php 
+                                    <?php
                                     $badge_class = 'badge-medium';
                                     if ($row['classification'] == 'Fast-Moving') $badge_class = 'badge-fast';
                                     elseif ($row['classification'] == 'Slow-Moving') $badge_class = 'badge-slow';
@@ -503,7 +527,7 @@ $classification = $conn->query($classification_query);
                 </table>
             </div>
         </div>
-        
+
         <!-- Daily Sales Trend -->
         <div class="card">
             <div class="card-header">
@@ -518,15 +542,27 @@ $classification = $conn->query($classification_query);
                                 <th>Transactions</th>
                                 <th>Items Sold</th>
                                 <th>Revenue</th>
+                                <th>Cost</th>
+                                <th>Profit</th>
+                                <th>Margin</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php while($row = $daily_sales->fetch_assoc()): ?>
+                            <?php while ($row = $daily_sales->fetch_assoc()): ?>
                                 <tr>
                                     <td><?php echo date('M d, Y (D)', strtotime($row['sale_date'])); ?></td>
                                     <td><?php echo number_format($row['transactions']); ?></td>
                                     <td><?php echo number_format($row['items_sold']); ?></td>
                                     <td><strong>₱<?php echo number_format($row['revenue'], 2); ?></strong></td>
+                                    <td>₱<?php echo number_format($row['total_cost'], 2); ?></td>
+                                    <td style="color: #27ae60; font-weight: 600;">₱<?php echo number_format($row['total_profit'], 2); ?></td>
+                                    <td>
+                                        <?php
+                                        $prod_margin = $row['total_revenue'] > 0
+                                            ? ($row['total_profit'] / $row['total_revenue']) * 100 : 0;
+                                        echo number_format($prod_margin, 1) . '%';
+                                        ?>
+                                    </td>
                                 </tr>
                             <?php endwhile; ?>
                         </tbody>
@@ -538,6 +574,7 @@ $classification = $conn->query($classification_query);
         </div>
     </div>
 </body>
+
 </html>
 
 <?php $conn->close(); ?>

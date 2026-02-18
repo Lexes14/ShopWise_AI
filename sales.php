@@ -376,6 +376,8 @@ $today_summary = $conn->query($today_summary_query)->fetch_assoc();
                 <h3>Today's Revenue</h3>
                 <div class="value">₱<?php echo number_format($today_summary['total_revenue'] ?? 0, 2); ?></div>
             </div>
+
+           
         </div>
 
         <!-- Record Sale Form -->
