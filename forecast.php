@@ -383,7 +383,7 @@ $low_priority = array_filter($forecast_data, fn($p) => $p['priority'] == 'Low');
 <body>
     <div class="header">
         <h1>🏪 ShopWise AI</h1>
-        <p>Intelligent Inventory Management for Sari-Sari Stores</p>
+        <p>Next-Generation Inventory Platform for Convenience Store Networks</p>
     </div>
     
     <div class="nav">

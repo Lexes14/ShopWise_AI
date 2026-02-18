@@ -235,7 +235,7 @@ $top_products_result = $conn->query($top_products_query);
 <body>
     <div class="header">
         <h1>🏪 ShopWise AI</h1>
-        <p>Intelligent Inventory Management for Sari-Sari Stores</p>
+      <p>Next-Generation Inventory Platform for Convenience Store Networks</p>
     </div>
     
     <div class="nav">

@@ -326,13 +326,21 @@ $today_summary = $conn->query($today_summary_query)->fetch_assoc();
             padding: 40px;
             color: #7f8c8d;
         }
+
+        #productSearch {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #dce1e6;
+            border-radius: 5px;
+        }
     </style>
 </head>
 
 <body>
     <div class="header">
         <h1>🏪 ShopWise AI</h1>
-        <p>Intelligent Inventory Management for Sari-Sari Stores</p>
+        <p>Next-Generation Inventory Platform for Convenience Store Networks</p>
+
     </div>
 
     <div class="nav">
@@ -379,7 +387,17 @@ $today_summary = $conn->query($today_summary_query)->fetch_assoc();
                 <form method="POST" id="saleForm">
                     <div class="form-grid">
                         <div class="form-group">
+                            <label>Search Product</label>
+                            <input
+                                type="text"
+                                id="productSearch"
+                                placeholder="Type product name..."
+                                onkeyup="filterProducts()">
+                        </div>
+
+                        <div class="form-group">
                             <label>Select Product *</label>
+
                             <select name="product_id" id="productSelect" required onchange="updateProductInfo()">
                                 <option value="">-- Choose a product --</option>
                                 <?php while ($row = $products_result->fetch_assoc()): ?>
@@ -530,6 +548,23 @@ $today_summary = $conn->query($today_summary_query)->fetch_assoc();
 
                 const total = price * quantity;
                 document.getElementById('displayTotal').textContent = '₱' + total.toFixed(2);
+            }
+        }
+
+        function filterProducts() {
+            const input = document.getElementById("productSearch");
+            const filter = input.value.toLowerCase();
+            const select = document.getElementById("productSelect");
+            const options = select.options;
+
+            for (let i = 0; i < options.length; i++) {
+                const text = options[i].text.toLowerCase();
+
+                if (text.includes(filter) || options[i].value === "") {
+                    options[i].style.display = "";
+                } else {
+                    options[i].style.display = "none";
+                }
             }
         }
     </script>
